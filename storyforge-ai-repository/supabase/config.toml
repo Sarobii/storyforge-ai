@@ -1,0 +1,240 @@
+# The following are required environment variables for the local development setup.
+# These are automatically generated with `supabase init`.
+PROJECT_REF = "your_project_ref_here"
+
+# A string used to distinguish different Supabase projects on the same host. Defaults to the
+# working directory name when running `supabase init`.
+API_EXTERNAL_URL = "http://127.0.0.1:54321"
+
+[api]
+Enabled = true
+# Port to use for the API URL.
+Port = 54321
+# Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
+# endpoints. public and storage are always included.
+Schemas = ["public", "storage", "graphql_public"]
+# Extra schemas to add to the search_path of every request. public is always included.
+Extra_search_path = ["public", "extensions"]
+# The maximum number of rows returned from a table in a single response. The request may specify
+# a smaller limit, which takes precedence.
+Max_rows = 1000
+
+[db]
+# Port to use for the local database URL.
+Port = 54322
+# Port used by db diff command to initialize the shadow database.
+Shadow_port = 54320
+# The database major version to use. This has to be the same as your remote database's. Run `SHOW
+# server_version_num;` on the remote database to check.
+Major_version = 15
+
+[db.pooler]
+Enabled = false
+# Port to use for the local connection pooler.
+Port = 54329
+# Specifies when a server connection can be reused by other clients.
+# Configure one of the supported pooler modes: `transaction`, `session`.
+Pool_mode = "transaction"
+# How many server connections to allow per user/database pair.
+Default_pool_size = 20
+# Maximum number of client connections allowed.
+Max_client_conn = 100
+
+[realtime]
+Enabled = true
+# Bind realtime via either IPv4 or IPv6. (default: IPv6)
+# ip_version = "IPv6"
+
+[studio]
+Enabled = true
+# Port to use for Supabase Studio.
+Port = 54323
+# External URL of the API server that frontend connects to.
+Api_url = "http://127.0.0.1:54321"
+
+# Email auth settings
+[auth]
+Enabled = true
+Site_url = "http://localhost:3000"
+Additional_redirect_urls = ["https://127.0.0.1:3000"]
+Jwt_expiry = 3600
+Refresh_token_rotation_enabled = true
+Refresh_token_reuse_interval = 10
+Enable_signup = true
+
+[auth.email]
+Enable_signup = true
+Double_confirm_changes = true
+Enable_confirmations = false
+# Secure email change requires that both the old and new email addresses are
+# confirmed before the change is committed. This does not apply to phone number changes.
+Secure_email_change_enabled = true
+
+# Use SMTP server
+[auth.email.smtp]
+Enable = false
+Host = "smtp.gmail.com"
+Port = 587
+User = ""
+Pass = ""
+Admin_email = ""
+Sender_name = "StoryForge AI"
+
+[auth.sms]
+Enable_signup = true
+Enable_confirmations = false
+Template = "Your code is {{ .Code }} ."
+
+# Use an external SMS provider
+[auth.external.apple]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
+# or any other third-party OIDC providers.
+Url = ""
+
+[auth.external.azure]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
+# or any other third-party OIDC providers.
+Url = ""
+Tenant = "common"
+
+[auth.external.bitbucket]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.discord]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.facebook]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.github]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.gitlab]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
+# or any other third-party OIDC providers.
+Url = ""
+
+[auth.external.google]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.keycloak]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
+# or any other third-party OIDC providers.
+Url = ""
+
+[auth.external.linkedin]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.notion]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.spotify]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.slack]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.twitter]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.twitch]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[auth.external.workos]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
+# or any other third-party OIDC providers.
+Url = ""
+
+[auth.external.zoom]
+Enabled = false
+Client_id = ""
+Secret = ""
+# Overrides the default auth redirectURL.
+Redirect_uri = ""
+
+[edge_runtime]
+Enabled = true
+# Configure one of the supported request policies: `oneshot`, `per_worker`.
+# Use `oneshot` for hot reload, or `per_worker` for load testing.
+Policy = "oneshot"
+Inspector_port = 8083
+
+[analytics]
+Enabled = false
+Port = 54327
+Vector_port = 54328
+# Configure one of the supported log formats: `plain`, `json`.
+# https://vector.dev/docs/reference/configuration/sinks/console/#encoding.codec
+Backend = "postgres"
+
+[functions.hello-world]
+Verify_jwt = false
