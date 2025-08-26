@@ -62,6 +62,145 @@ export interface GameControls {
   }
 }
 
+// Math RPG Specific Types
+export interface MathProblem {
+  question: string
+  answer: number
+  difficulty: number
+  type: 'addition' | 'subtraction' | 'multiplication' | 'division' | 'mixed'
+  options?: number[]
+}
+
+export interface MathRPGPlayer {
+  name: string
+  hp: number
+  maxHp: number
+  attack: number
+  defense: number
+  level: number
+  exp: number
+  expToNext: number
+  gold: number
+  sprite?: any
+}
+
+export interface MathRPGEnemy {
+  name: string
+  hp: number
+  maxHp: number
+  attack: number
+  defense: number
+  sprite?: any
+  rewards: { exp: number; gold: number }
+  isBoss: boolean
+}
+
+export interface MathRPGEquipment {
+  id: string
+  name: string
+  type: 'weapon' | 'armor'
+  attackBonus?: number
+  defenseBonus?: number
+  description: string
+}
+
+export interface MathRPGShopItem {
+  id: string
+  name: string
+  type: 'potion' | 'weapon' | 'armor'
+  cost: number
+  effect: {
+    hp?: number
+    attack?: number
+    defense?: number
+  }
+  description: string
+}
+
+export enum MathRPGBattleState {
+  PLAYER_TURN = 'player_turn',
+  WAITING_ANSWER = 'waiting_answer',
+  ENEMY_TURN = 'enemy_turn',
+  VICTORY = 'victory',
+  DEFEAT = 'defeat',
+  SHOPPING = 'shopping'
+}
+
+export interface MathRPGGameState extends GameState {
+  mathRPG?: {
+    player: MathRPGPlayer
+    currentEnemy?: MathRPGEnemy
+    battleState: MathRPGBattleState
+    currentBattle: number
+    maxBattles: number
+    equippedWeapon?: MathRPGEquipment
+    equippedArmor?: MathRPGEquipment
+    totalMathProblemsCorrect: number
+    totalMathProblemsAttempted: number
+    totalBossesDefeated: number
+  }
+}
+
+// Math RPG Event Types for React Communication
+export interface MathRPGEvents {
+  OPEN_MATH_OVERLAY: {
+    problem: MathProblem
+    enemy: {
+      name: string
+      hp: number
+      maxHp: number
+      isBoss: boolean
+    }
+  }
+  UPDATE_HUD: {
+    player: MathRPGPlayer
+    enemy: MathRPGEnemy | null
+  }
+  COMBAT_RESULT: {
+    success: boolean
+    damage: number
+    message: string
+  }
+  ENEMY_ATTACK: {
+    damage: number
+    enemyName: string
+  }
+  ENEMY_DEFEATED: {
+    enemy: string
+    expGained: number
+    goldGained: number
+    isBoss: boolean
+  }
+  LEVEL_UP: {
+    newLevel: number
+    hpIncrease: number
+    attackIncrease: number
+    defenseIncrease: number
+  }
+  PLAYER_DEFEATED: {
+    finalScore: number
+    level: number
+    battlesWon: number
+  }
+  OPEN_SHOP_OVERLAY: {
+    items: MathRPGShopItem[]
+    playerGold: number
+  }
+  ITEM_PURCHASED: {
+    item: string
+    effect: {
+      hp?: number
+      attack?: number
+      defense?: number
+    }
+  }
+  GAME_COMPLETED: {
+    victory: boolean
+    finalScore: number
+    achievements: string[]
+  }
+}
+
 export const GAME_TEMPLATES: GameTemplate[] = [
   {
     id: 'pixel-quest',
