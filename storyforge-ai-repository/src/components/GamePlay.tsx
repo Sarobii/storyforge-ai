@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { GameEngine } from '../game/GameEngine'
-import { GameTemplate, GameCustomization, GameState } from '../types/game'
+import { GameTemplate, GameCustomization, GameState, MathProblem, MathRPGPlayer, MathRPGEnemy, MathRPGShopItem } from '../types/game'
+import { MathProblemOverlay } from './math-rpg/MathProblemOverlay'
+import { ShopOverlay } from './math-rpg/ShopOverlay'
+import { HUD } from './math-rpg/HUD'
+import { toast } from 'sonner'
 
 interface GamePlayProps {
   template: GameTemplate
@@ -26,14 +30,166 @@ export const GamePlay: React.FC<GamePlayProps> = ({
   const [isPaused, setIsPaused] = useState(false)
   const [lastSave, setLastSave] = useState<Date | null>(null)
 
+  // Math RPG specific state
+  const [mathProblemVisible, setMathProblemVisible] = useState(false)
+  const [shopVisible, setShopVisible] = useState(false)
+  const [hudVisible, setHudVisible] = useState(false)
+  const [currentMathProblem, setCurrentMathProblem] = useState<MathProblem | null>(null)
+  const [currentEnemy, setCurrentEnemy] = useState<any>(null)
+  const [playerStats, setPlayerStats] = useState<MathRPGPlayer | null>(null)
+  const [enemyStats, setEnemyStats] = useState<any>(null)
+  const [shopItems, setShopItems] = useState<MathRPGShopItem[]>([])
+  const [battleNumber, setBattleNumber] = useState(1)
+
+  // Math RPG Event Setup
+  const setupMathRPGEvents = (gameEngine: GameEngine) => {
+    const scene = gameEngine.getCurrentScene() as any
+    if (!scene || !scene.getGameEvents) return
+
+    const gameEvents = scene.getGameEvents()
+
+    // Show Math Problem Overlay
+    gameEvents.on('OPEN_MATH_OVERLAY', (data: any) => {
+      setCurrentMathProblem(data.problem)
+      setCurrentEnemy(data.enemy)
+      setMathProblemVisible(true)
+      toast.info('🧮 Solve the math problem to attack!')
+    })
+
+    // Update HUD
+    gameEvents.on('UPDATE_HUD', (data: any) => {
+      setPlayerStats(data.player)
+      setEnemyStats(data.enemy)
+      setHudVisible(true)
+      setBattleNumber(data.player?.currentBattle || 1)
+    })
+
+    // Combat Result
+    gameEvents.on('COMBAT_RESULT', (data: any) => {
+      setMathProblemVisible(false)
+      if (data.success) {
+        toast.success(`✅ ${data.message}`, {
+          duration: 3000,
+          style: { background: '#10b981', color: 'white' }
+        })
+      } else {
+        toast.error(`❌ ${data.message}`, {
+          duration: 3000,
+          style: { background: '#ef4444', color: 'white' }
+        })
+      }
+    })
+
+    // Enemy Attack
+    gameEvents.on('ENEMY_ATTACK', (data: any) => {
+      toast.warning(`⚔️ ${data.enemyName} attacks for ${data.damage} damage!`, {
+        duration: 2000,
+        style: { background: '#f59e0b', color: 'white' }
+      })
+    })
+
+    // Enemy Defeated
+    gameEvents.on('ENEMY_DEFEATED', (data: any) => {
+      const message = data.isBoss
+        ? `👑 Boss ${data.enemy} defeated! +${data.expGained} EXP, +${data.goldGained} Gold!`
+        : `⚔️ ${data.enemy} defeated! +${data.expGained} EXP, +${data.goldGained} Gold!`
+
+      toast.success(message, {
+        duration: 4000,
+        style: { background: '#10b981', color: 'white' }
+      })
+    })
+
+    // Level Up
+    gameEvents.on('LEVEL_UP', (data: any) => {
+      toast.success(`🌟 Level Up! You're now level ${data.newLevel}!`, {
+        duration: 4000,
+        style: { background: '#8b5cf6', color: 'white' }
+      })
+
+      setTimeout(() => {
+        toast.info(`📈 Stats increased! HP +${data.hpIncrease}, ATK +${data.attackIncrease}, DEF +${data.defenseIncrease}`, {
+          duration: 3000
+        })
+      }, 1000)
+    })
+
+    // Player Defeated
+    gameEvents.on('PLAYER_DEFEATED', (data: any) => {
+      setHudVisible(false)
+      toast.error(`💀 Game Over! Final Score: ${data.finalScore}`, {
+        duration: 5000,
+        style: { background: '#ef4444', color: 'white' }
+      })
+    })
+
+    // Shop Overlay
+    gameEvents.on('OPEN_SHOP_OVERLAY', (data: any) => {
+      setShopItems(data.items)
+      setShopVisible(true)
+      toast.info('🛒 Welcome to the shop! Buy items to aid your journey.')
+    })
+
+    // Item Purchased
+    gameEvents.on('ITEM_PURCHASED', (data: any) => {
+      const effects = []
+      if (data.effect.hp) effects.push(`+${data.effect.hp} HP`)
+      if (data.effect.attack) effects.push(`+${data.effect.attack} ATK`)
+      if (data.effect.defense) effects.push(`+${data.effect.defense} DEF`)
+
+      toast.success(`🛍️ Purchased ${data.item}! ${effects.join(', ')}`, {
+        duration: 3000,
+        style: { background: '#10b981', color: 'white' }
+      })
+    })
+
+    // Game Completed
+    gameEvents.on('GAME_COMPLETED', (data: any) => {
+      setHudVisible(false)
+      const message = data.victory
+        ? `🎉 Victory! You completed the Math RPG! Final Score: ${data.finalScore}`
+        : `💀 Game Over! Final Score: ${data.finalScore}`
+
+      toast.success(message, {
+        duration: 6000,
+        style: { background: data.victory ? '#10b981' : '#ef4444', color: 'white' }
+      })
+    })
+  }
+
+  // Math RPG Event Handlers
+  const handleMathAnswer = (answer: number) => {
+    const scene = gameEngineRef.current?.getCurrentScene() as any
+    if (scene && scene.getGameEvents) {
+      scene.getGameEvents().emit('MATH_ANSWER_SUBMITTED', answer)
+    }
+  }
+
+  const handleShopPurchase = (itemId: string) => {
+    const scene = gameEngineRef.current?.getCurrentScene() as any
+    if (scene && scene.getGameEvents) {
+      scene.getGameEvents().emit('SHOP_PURCHASE', itemId)
+    }
+  }
+
+  const handleMathOverlayClose = () => {
+    setMathProblemVisible(false)
+  }
+
+  const handleShopOverlayClose = () => {
+    setShopVisible(false)
+    const scene = gameEngineRef.current?.getCurrentScene() as any
+    if (scene && scene.getGameEvents) {
+      scene.getGameEvents().emit('OVERLAY_CLOSED')
+    }
+  }
+
   useEffect(() => {
     let mounted = true
     
     const initializeGame = async () => {
       try {
-        if (!gameContainerRef.current) return
-        
-        // Simulate loading progress
+        // Simulate loading progress first
         const loadingSteps = [
           { message: 'Loading game engine...', progress: 20 },
           { message: 'Preparing assets...', progress: 40 },
@@ -48,6 +204,20 @@ export const GamePlay: React.FC<GamePlayProps> = ({
           await new Promise(resolve => setTimeout(resolve, 300))
         }
         
+        // Set loading to false to render the game container
+        if (mounted) {
+          setIsLoading(false)
+        }
+
+        // Wait a bit for the DOM to render the game container
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        // Now check for the game container
+        const gameContainer = document.getElementById('game-container')
+        if (!gameContainer) {
+          throw new Error('Game container not found')
+        }
+
         const gameEngine = new GameEngine({
           gameTemplate: template,
           customization,
@@ -65,9 +235,11 @@ export const GamePlay: React.FC<GamePlayProps> = ({
         gameEngineRef.current = gameEngine
         await gameEngine.initialize('game-container')
         
-        if (mounted) {
-          setIsLoading(false)
+        // Setup Math RPG event listeners if this is a Math RPG game
+        if (template.id === 'math-rpg') {
+          setupMathRPGEvents(gameEngine)
         }
+
       } catch (err) {
         console.error('Failed to initialize game:', err)
         if (mounted) {
@@ -257,6 +429,34 @@ export const GamePlay: React.FC<GamePlayProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Math RPG Overlays and HUD */}
+      {template.id === 'math-rpg' && (
+        <>
+          <HUD
+            player={playerStats!}
+            enemy={enemyStats}
+            battleNumber={battleNumber}
+            isVisible={hudVisible && playerStats !== null}
+          />
+
+          <MathProblemOverlay
+            problem={currentMathProblem!}
+            enemy={currentEnemy}
+            onAnswer={handleMathAnswer}
+            onClose={handleMathOverlayClose}
+            isVisible={mathProblemVisible && currentMathProblem !== null}
+          />
+
+          <ShopOverlay
+            items={shopItems}
+            playerGold={playerStats?.gold || 0}
+            onPurchase={handleShopPurchase}
+            onClose={handleShopOverlayClose}
+            isVisible={shopVisible}
+          />
+        </>
+      )}
     </div>
   )
 }
