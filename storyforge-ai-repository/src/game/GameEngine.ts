@@ -1,3 +1,4 @@
+
 import Phaser from 'phaser'
 import { GameTemplate, GameCustomization, GameState } from '../types/game'
 import { saveGameState, loadGameState } from '../config/supabase'
@@ -12,6 +13,17 @@ export interface GameEngineProps {
 }
 
 export class GameEngine {
+  /**
+   * Returns the current active Phaser scene (the main game scene).
+   */
+  public getCurrentScene(): Phaser.Scene | null {
+    if (this.game && this.game.scene) {
+      // Return the first running scene (should be the main game scene)
+      const scenes = this.game.scene.getScenes(true)
+      return scenes.length > 0 ? scenes[0] : null
+    }
+    return null
+  }
   private game: Phaser.Game | null = null
   private gameContainer: HTMLDivElement | null = null
   private props: GameEngineProps
@@ -105,28 +117,28 @@ export class GameEngine {
     }
 
     switch (templateId) {
-      case 'pixel-quest':
-        const { PixelQuestScene } = await import('./scenes/PixelQuestScene')
-        return new PixelQuestScene(sceneData)
-      
-      case 'platform-hero':
-        const { PlatformHeroScene } = await import('./scenes/PlatformHeroScene')
-        return new PlatformHeroScene(sceneData)
-      
-      case 'math-rpg':
-        const { MathRPGScene } = await import('./scenes/MathRPGScene')
-        return new MathRPGScene(sceneData)
-      
-      case 'reveal-adventure':
-        const { RevealAdventureScene } = await import('./scenes/RevealAdventureScene')
-        return new RevealAdventureScene(sceneData)
-      
-      case 'puzzle-solver':
-        const { PuzzleSolverScene } = await import('./scenes/PuzzleSolverScene')
-        return new PuzzleSolverScene(sceneData)
-      
+      case 'pixel-quest': {
+        const { PixelQuestScene } = await import('./scenes/PixelQuestScene');
+        return new PixelQuestScene(sceneData);
+      }
+      case 'platform-hero': {
+        const { PlatformHeroScene } = await import('./scenes/PlatformHeroScene');
+        return new PlatformHeroScene(sceneData);
+      }
+      case 'math-rpg': {
+        const { MathRPGScene } = await import('./scenes/MathRPGScene');
+        return new MathRPGScene(sceneData);
+      }
+      case 'reveal-adventure': {
+        const { RevealAdventureScene } = await import('./scenes/RevealAdventureScene');
+        return new RevealAdventureScene(sceneData);
+      }
+      case 'puzzle-solver': {
+        const { PuzzleSolverScene } = await import('./scenes/PuzzleSolverScene');
+        return new PuzzleSolverScene(sceneData);
+      }
       default:
-        throw new Error(`Unknown game template: ${templateId}`)
+        throw new Error(`Unknown game template: ${templateId}`);
     }
   }
 

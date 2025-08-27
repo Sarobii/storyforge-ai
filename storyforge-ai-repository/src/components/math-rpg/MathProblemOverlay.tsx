@@ -1,96 +1,121 @@
-import React, { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-import { Sword, Shield, Heart } from 'lucide-react'
+import React, { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Sword, Shield, Heart } from "lucide-react";
 
 interface MathProblem {
-  question: string
-  answer: number
-  difficulty: number
-  type: 'addition' | 'subtraction' | 'multiplication' | 'division' | 'mixed'
+  question: string;
+  answer: number;
+  difficulty: number;
+  type: "addition" | "subtraction" | "multiplication" | "division" | "mixed";
 }
 
 interface Enemy {
-  name: string
-  hp: number
-  maxHp: number
-  isBoss: boolean
+  name: string;
+  hp: number;
+  maxHp: number;
+  isBoss: boolean;
 }
 
 interface MathProblemOverlayProps {
-  problem: MathProblem
-  enemy: Enemy
-  onAnswer: (answer: number) => void
-  onClose?: () => void
-  isVisible: boolean
+  problem: MathProblem;
+  enemy: Enemy;
+  onAnswer: (answer: number) => void;
+  onClose?: () => void;
+  isVisible: boolean;
 }
 
 const answerSchema = z.object({
-  answer: z.string().min(1, 'Please enter an answer').refine((val) => {
-    const num = parseInt(val)
-    return !isNaN(num)
-  }, 'Please enter a valid number')
-})
+  answer: z
+    .string()
+    .min(1, "Please enter an answer")
+    .refine((val) => {
+      const num = parseInt(val);
+      return !isNaN(num);
+    }, "Please enter a valid number"),
+});
 
-type AnswerForm = z.infer<typeof answerSchema>
+type AnswerForm = z.infer<typeof answerSchema>;
 
 export const MathProblemOverlay: React.FC<MathProblemOverlayProps> = ({
   problem,
   enemy,
   onAnswer,
   onClose,
-  isVisible
+  isVisible,
 }) => {
-  const { register, handleSubmit, formState: { errors }, reset, setFocus } = useForm<AnswerForm>({
-    resolver: zodResolver(answerSchema)
-  })
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setFocus,
+  } = useForm<AnswerForm>({
+    resolver: zodResolver(answerSchema),
+  });
 
   useEffect(() => {
     if (isVisible) {
-      reset()
-      setTimeout(() => setFocus('answer'), 100)
+      reset();
+      setTimeout(() => setFocus("answer"), 100);
     }
-  }, [isVisible, reset, setFocus])
+  }, [isVisible, reset, setFocus]);
 
   const onSubmit = (data: AnswerForm) => {
-    const answer = parseInt(data.answer)
-    onAnswer(answer)
-    reset()
-  }
+    const answer = parseInt(data.answer);
+    onAnswer(answer);
+    reset();
+  };
 
   const getDifficultyLabel = (difficulty: number) => {
     switch (difficulty) {
-      case 1: return 'Easy'
-      case 2: return 'Medium'
-      case 3: return 'Hard'
-      case 4: return 'Expert'
-      default: return 'Normal'
+      case 1:
+        return "Easy";
+      case 2:
+        return "Medium";
+      case 3:
+        return "Hard";
+      case 4:
+        return "Expert";
+      default:
+        return "Normal";
     }
-  }
+  };
 
   const getDifficultyColor = (difficulty: number) => {
     switch (difficulty) {
-      case 1: return 'bg-green-500'
-      case 2: return 'bg-yellow-500'
-      case 3: return 'bg-orange-500'
-      case 4: return 'bg-red-500'
-      default: return 'bg-gray-500'
+      case 1:
+        return "bg-green-500";
+      case 2:
+        return "bg-yellow-500";
+      case 3:
+        return "bg-orange-500";
+      case 4:
+        return "bg-red-500";
+      default:
+        return "bg-gray-500";
     }
-  }
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'addition': return '+'
-      case 'subtraction': return '-'
-      case 'multiplication': return '×'
-      case 'division': return '÷'
-      case 'mixed': return '∑'
-      default: return '?'
+      case "addition":
+        return "+";
+      case "subtraction":
+        return "-";
+      case "multiplication":
+        return "×";
+      case "division":
+        return "÷";
+      case "mixed":
+        return "∑";
+      default:
+        return "?";
     }
-  }
+  };
 
-  if (!isVisible) return null
+  if (!isVisible) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -104,7 +129,11 @@ export const MathProblemOverlay: React.FC<MathProblemOverlayProps> = ({
                 Combat Math Challenge
               </h2>
               <div className="flex items-center gap-2">
-                <div className={`px-3 py-1 rounded-full text-xs font-bold text-white ${getDifficultyColor(problem.difficulty)}`}>
+                <div
+                  className={`px-3 py-1 rounded-full text-xs font-bold text-white ${getDifficultyColor(
+                    problem.difficulty
+                  )}`}
+                >
                   {getDifficultyLabel(problem.difficulty)}
                 </div>
                 <div className="px-3 py-1 rounded-full text-xs font-bold text-white bg-indigo-600">
@@ -118,7 +147,10 @@ export const MathProblemOverlay: React.FC<MathProblemOverlayProps> = ({
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-red-400" />
                 <span className="text-white font-medium">
-                  {enemy.name} {enemy.isBoss && <span className="text-yellow-400 text-sm">👑 BOSS</span>}
+                  {enemy.name}{" "}
+                  {enemy.isBoss && (
+                    <span className="text-yellow-400 text-sm">👑 BOSS</span>
+                  )}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -139,7 +171,9 @@ export const MathProblemOverlay: React.FC<MathProblemOverlayProps> = ({
           {/* Math Problem */}
           <div className="p-6">
             <div className="text-center mb-6">
-              <p className="text-gray-300 text-sm mb-2">Solve this problem to attack:</p>
+              <p className="text-gray-300 text-sm mb-2">
+                Solve this problem to attack:
+              </p>
               <div className="bg-white/10 rounded-xl p-6 border border-white/20">
                 <div className="text-4xl font-bold text-white font-mono mb-2">
                   {problem.question}
@@ -152,7 +186,7 @@ export const MathProblemOverlay: React.FC<MathProblemOverlayProps> = ({
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <input
-                  {...register('answer')}
+                  {...register("answer")}
                   type="number"
                   placeholder="Enter your answer..."
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-center text-xl font-mono placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -194,5 +228,5 @@ export const MathProblemOverlay: React.FC<MathProblemOverlayProps> = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
