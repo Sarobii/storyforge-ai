@@ -43,13 +43,22 @@ export const GamePlay: React.FC<GamePlayProps> = ({
 
   // Math RPG Event Setup
   const setupMathRPGEvents = (gameEngine: GameEngine) => {
+    console.log('GamePlay: Setting up Math RPG events...')
     const scene = gameEngine.getCurrentScene() as any
-    if (!scene || !scene.getGameEvents) return
+    console.log('GamePlay: Current scene:', scene)
+    
+    if (!scene || !scene.getGameEvents) {
+      console.log('GamePlay: Scene not ready or no getGameEvents method, retrying in 500ms...')
+      setTimeout(() => setupMathRPGEvents(gameEngine), 500)
+      return
+    }
 
     const gameEvents = scene.getGameEvents()
+    console.log('GamePlay: Got game events emitter:', gameEvents)
 
     // Show Math Problem Overlay
     gameEvents.on('OPEN_MATH_OVERLAY', (data: any) => {
+      console.log('GamePlay: Received OPEN_MATH_OVERLAY event:', data)
       setCurrentMathProblem(data.problem)
       setCurrentEnemy(data.enemy)
       setMathProblemVisible(true)
@@ -58,6 +67,7 @@ export const GamePlay: React.FC<GamePlayProps> = ({
 
     // Update HUD
     gameEvents.on('UPDATE_HUD', (data: any) => {
+      console.log('GamePlay: Received UPDATE_HUD event:', data)
       setPlayerStats(data.player)
       setEnemyStats(data.enemy)
       setHudVisible(true)
@@ -145,15 +155,52 @@ export const GamePlay: React.FC<GamePlayProps> = ({
 
     // Game Completed
     gameEvents.on('GAME_COMPLETED', (data: any) => {
+      console.log('GamePlay: Received GAME_COMPLETED event:', data)
       setHudVisible(false)
-      const message = data.victory
-        ? `🎉 Victory! You completed the Math RPG! Final Score: ${data.finalScore}`
-        : `💀 Game Over! Final Score: ${data.finalScore}`
-
-      toast.success(message, {
-        duration: 6000,
-        style: { background: data.victory ? '#10b981' : '#ef4444', color: 'white' }
-      })
+      setMathProblemVisible(false)
+      setShopVisible(false)
+      
+      if (data.victory) {
+        // Epic victory celebration
+        toast.success('🎉 VICTORY! YOU ARE THE MATH CHAMPION! 🎉', {
+          duration: 8000,
+          style: { 
+            background: 'linear-gradient(45deg, #10b981, #059669)',
+            color: 'white',
+            fontSize: '20px',
+            fontWeight: 'bold',
+            textAlign: 'center'
+          }
+        })
+        
+        setTimeout(() => {
+          toast.success(`🏆 Final Score: ${data.finalScore} 🏆`, {
+            duration: 6000,
+            style: { 
+              background: '#8b5cf6', 
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }
+          })
+        }, 2000)
+        
+        setTimeout(() => {
+          data.achievements.forEach((achievement: string, index: number) => {
+            setTimeout(() => {
+              toast.success(`⭐ ${achievement}`, {
+                duration: 4000,
+                style: { background: '#f59e0b', color: 'white' }
+              })
+            }, index * 1000)
+          })
+        }, 4000)
+      } else {
+        toast.error(`💀 Game Over! Final Score: ${data.finalScore}`, {
+          duration: 5000,
+          style: { background: '#ef4444', color: 'white' }
+        })
+      }
     })
   }
 
@@ -408,27 +455,53 @@ export const GamePlay: React.FC<GamePlayProps> = ({
       </div>
 
       {/* Desktop Controls Info */}
-      <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hidden md:block">
-        <h4 className="text-white font-semibold mb-2">⌨️ Keyboard Controls</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-white/70">
-          <div>
-            <span className="font-medium text-white">Movement:</span>
-            <br />WASD or Arrow Keys
-          </div>
-          <div>
-            <span className="font-medium text-white">Action:</span>
-            <br />SPACE or ENTER
-          </div>
-          <div>
-            <span className="font-medium text-white">Pause:</span>
-            <br />P or ESC
-          </div>
-          <div>
-            <span className="font-medium text-white">Menu:</span>
-            <br />M or TAB
+      {template.id !== 'math-rpg' && (
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hidden md:block">
+          <h4 className="text-white font-semibold mb-2">⌨️ Keyboard Controls</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-white/70">
+            <div>
+              <span className="font-medium text-white">Movement:</span>
+              <br />WASD or Arrow Keys
+            </div>
+            <div>
+              <span className="font-medium text-white">Action:</span>
+              <br />SPACE or ENTER
+            </div>
+            <div>
+              <span className="font-medium text-white">Pause:</span>
+              <br />P or ESC
+            </div>
+            <div>
+              <span className="font-medium text-white">Menu:</span>
+              <br />M or TAB
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {template.id === 'math-rpg' && (
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hidden md:block">
+          <h4 className="text-white font-semibold mb-2">🧮 Math RPG Controls</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm text-white/70">
+            <div>
+              <span className="font-medium text-white">Combat:</span>
+              <br />Solve math problems to attack
+            </div>
+            <div>
+              <span className="font-medium text-white">Shopping:</span>
+              <br />Click items to purchase upgrades
+            </div>
+            <div>
+              <span className="font-medium text-white">Progress:</span>
+              <br />Defeat 10 enemies to win
+            </div>
+            <div>
+              <span className="font-medium text-white">Strategy:</span>
+              <br />Higher difficulty = more damage
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Math RPG Overlays and HUD */}
       {template.id === 'math-rpg' && (

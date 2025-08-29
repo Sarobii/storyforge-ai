@@ -54,40 +54,68 @@ export class MathRPGScene extends BaseGameScene {
   private maxBattles = 10
   private mathProblem: MathProblem | null = null
   private shopItems: ShopItem[] = []
-  
+
   // Event emitters for React integration
   private gameEvents = new Phaser.Events.EventEmitter()
-  
+
+  private attackSound!: Phaser.Sound.BaseSound
+  private enemyHitSound!: Phaser.Sound.BaseSound
+  private playerHurtSound!: Phaser.Sound.BaseSound
+
   constructor(data: GameSceneData) {
     super('MathRPGScene')
+    console.log('MathRPGScene: Constructor called with data:', data)
     this.init(data)
   }
 
   preload() {
     console.log('MathRPGScene: Starting preload...')
-    
+
     // Load sprite sheets
     this.load.spritesheet('hero', '/images/hero_sprite_sheet.png', {
       frameWidth: 32,
       frameHeight: 32
     })
-    
+
     this.load.spritesheet('enemies', '/images/enemy_sprites_v2.png', {
       frameWidth: 32,
       frameHeight: 32
     })
-    
+
     this.load.spritesheet('items', '/images/game_items_ui.png', {
       frameWidth: 32,
       frameHeight: 32
     })
-    
+
+    // Load audio files for combat
+    this.load.audio('math_rpg_theme', '/audio/math_rpg_theme.ogg')
+    this.load.audio('attack_sound', '/audio/attack.ogg')
+    this.load.audio('enemy_hit', '/audio/enemy_hit.ogg')
+    this.load.audio('player_hurt', '/audio/player_hurt.ogg')
+    this.load.audio('level_up', '/audio/level_up.ogg')
+    this.load.audio('game_complete', '/audio/game_complete.ogg')
+    this.load.audio('button_click', '/audio/button_click.ogg')
+
     console.log('MathRPGScene: Preload complete!')
   }
 
   create() {
-    super.create()
-    
+    console.log('MathRPGScene: Create method called')
+    // Don't call super.create() to avoid default UI creation
+    // super.create()
+
+    // Initialize only what we need from BaseGameScene
+    this.startTime = Date.now()
+    this.setupAudio() // Keep audio setup
+
+    // Add essential scene setup without UI conflicts
+    this.time.addEvent({
+      delay: 1000,
+      callback: this.updatePlaytime,
+      callbackScope: this,
+      loop: true
+    })
+
     this.createAnimations()
     this.createBackground()
     this.initializePlayer()
@@ -96,6 +124,13 @@ export class MathRPGScene extends BaseGameScene {
 
     // Setup React communication
     this.setupEventCommunication()
+    console.log('MathRPGScene: Create method completed')
+  }
+
+  protected updatePlaytime() {
+    if (!this.isPaused) {
+      this.gameState.playtime += 1
+    }
   }
 
   private setupEventCommunication() {
@@ -104,16 +139,19 @@ export class MathRPGScene extends BaseGameScene {
 
     // Listen for answers from React overlay
     this.gameEvents.on('MATH_ANSWER_SUBMITTED', (answer: number) => {
+      console.log('MathRPGScene: Received answer from React overlay:', answer)
       this.handleMathAnswer(answer)
     })
 
     // Listen for shop purchases
     this.gameEvents.on('SHOP_PURCHASE', (itemId: string) => {
+      console.log('MathRPGScene: Received shop purchase from React overlay:', itemId)
       this.handleShopPurchase(itemId)
     })
 
     // Listen for overlay close events
     this.gameEvents.on('OVERLAY_CLOSED', () => {
+      console.log('MathRPGScene: Received overlay close event from React overlay')
       this.handleOverlayClosed()
     })
   }
@@ -159,9 +197,11 @@ export class MathRPGScene extends BaseGameScene {
   }
 
   private createBackground() {
+    console.log('MathRPGScene: Creating background...')
     // Battle arena background
     const bg = this.add.rectangle(400, 300, 800, 600, 0x1a1a2e)
-    
+    console.log('MathRPGScene: Background rectangle created:', bg)
+
     // Stars
     for (let i = 0; i < 100; i++) {
       const star = this.add.circle(
@@ -181,13 +221,15 @@ export class MathRPGScene extends BaseGameScene {
         repeat: -1
       })
     }
-    
+
     // Battle platform
     const platform = this.add.rectangle(400, 500, 700, 120, 0x4a4a68, 0.8)
     platform.setStrokeStyle(3, 0x6c6c8a)
+    console.log('MathRPGScene: Battle platform created:', platform)
   }
 
   private initializePlayer() {
+    console.log('MathRPGScene: Initializing player...')
     this.player = {
       name: this.customization.characterName || 'Hero',
       hp: 100,
@@ -200,7 +242,8 @@ export class MathRPGScene extends BaseGameScene {
       gold: 50,
       sprite: this.add.sprite(200, 400, 'hero', 0)
     }
-    
+
+    console.log('MathRPGScene: Player sprite created:', this.player.sprite)
     this.player.sprite.setScale(3)
     this.player.sprite.anims.play('hero_idle', true)
 
@@ -208,6 +251,7 @@ export class MathRPGScene extends BaseGameScene {
     this.gameState.health = this.player.hp
     this.gameState.level = this.player.level
     this.gameState.score = this.player.exp
+    console.log('MathRPGScene: Player initialized:', this.player)
   }
 
   private initializeShop() {
@@ -256,17 +300,40 @@ export class MathRPGScene extends BaseGameScene {
   }
 
   private startBattle() {
+    console.log('MathRPGScene: Starting battle', this.currentBattle)
     if (this.currentBattle > this.maxBattles) {
       this.gameWon()
       return
     }
-    
+
+    // Final boss announcement
+    if (this.currentBattle === this.maxBattles) {
+      this.gameEvents.emit('FINAL_BOSS_ANNOUNCEMENT', {
+        message: '🐉 FINAL BOSS APPROACHING! 🐉',
+        subtitle: 'The Ancient Dragon Lord awaits...'
+      })
+
+      // Delay before creating final boss
+      this.time.delayedCall(3000, () => {
+        this.createEnemy()
+        this.battleState = 'player_turn'
+        this.emitHUDUpdate()
+
+        this.time.delayedCall(1000, () => {
+          console.log('MathRPGScene: Starting final boss turn')
+          this.playerTurn()
+        })
+      })
+      return
+    }
+
     this.createEnemy()
     this.battleState = 'player_turn'
     this.emitHUDUpdate()
 
     // Small delay before showing battle options
     this.time.delayedCall(1000, () => {
+      console.log('MathRPGScene: Starting player turn')
       this.playerTurn()
     })
   }
@@ -276,7 +343,7 @@ export class MathRPGScene extends BaseGameScene {
     if (this.currentEnemy?.sprite) {
       this.currentEnemy.sprite.destroy()
     }
-    
+
     const isBoss = this.currentBattle % 3 === 0
     const enemyLevel = Math.floor(this.currentBattle / 3) + 1
 
@@ -293,11 +360,11 @@ export class MathRPGScene extends BaseGameScene {
       { name: 'Ancient Troll', hp: 180, attack: 30, defense: 15, exp: 180, gold: 200 },
       { name: 'Elder Dragon', hp: 250, attack: 35, defense: 20, exp: 300, gold: 300 }
     ]
-    
+
     const enemyData = isBoss
       ? bossEnemies[Math.min(Math.floor(this.currentBattle / 3) - 1, bossEnemies.length - 1)]
       : baseEnemies[Math.min(enemyLevel - 1, baseEnemies.length - 1)]
-    
+
     this.currentEnemy = {
       name: enemyData.name,
       hp: enemyData.hp,
@@ -308,7 +375,7 @@ export class MathRPGScene extends BaseGameScene {
       rewards: { exp: enemyData.exp, gold: enemyData.gold },
       isBoss
     }
-    
+
     // Scale and tint based on type
     if (isBoss) {
       this.currentEnemy.sprite.setScale(4)
@@ -318,16 +385,16 @@ export class MathRPGScene extends BaseGameScene {
       const tints = [0xff8888, 0x88ff88, 0x8888ff, 0xffff88]
       this.currentEnemy.sprite.setTint(tints[this.currentBattle % 4])
     }
-    
+
     this.currentEnemy.sprite.anims.play('enemy_idle', true)
   }
 
   private playerTurn() {
     this.battleState = 'player_turn'
-    
+
     // Generate math problem based on player level
     this.mathProblem = this.generateMathProblem()
-    
+
     // Emit event to show math overlay in React
     this.gameEvents.emit('OPEN_MATH_OVERLAY', {
       problem: this.mathProblem,
@@ -338,15 +405,19 @@ export class MathRPGScene extends BaseGameScene {
         isBoss: this.currentEnemy.isBoss
       }
     })
-    
+
+    console.log('MathRPGScene: Emitting OPEN_MATH_OVERLAY event')
+
     this.battleState = 'waiting_answer'
   }
 
   private generateMathProblem(): MathProblem {
+    console.log('MathRPGScene: Generating math problem for level:', this.player.level)
     const level = this.player.level
     let problem: MathProblem
-    
+
     if (level <= 3) {
+      console.log('MathRPGScene: Generating addition/subtraction problem')
       // Addition and Subtraction (1-20)
       const type = Math.random() < 0.5 ? 'addition' : 'subtraction'
       if (type === 'addition') {
@@ -369,6 +440,7 @@ export class MathRPGScene extends BaseGameScene {
         }
       }
     } else if (level <= 6) {
+      console.log('MathRPGScene: Generating multiplication problem')
       // Multiplication (up to 12x12)
       const a = Phaser.Math.Between(2, 12)
       const b = Phaser.Math.Between(2, 12)
@@ -378,7 +450,9 @@ export class MathRPGScene extends BaseGameScene {
         difficulty: 2,
         type: 'multiplication'
       }
+      console.log('MathRPGScene: Generated multiplication problem:', problem)
     } else {
+      console.log('MathRPGScene: Generating division/mixed problem')
       // Division and mixed problems
       if (Math.random() < 0.7) {
         // Division
@@ -404,33 +478,44 @@ export class MathRPGScene extends BaseGameScene {
         }
       }
     }
-    
+
+    console.log('MathRPGScene: Final problem generated:', problem)
     return problem
   }
 
   private handleMathAnswer(answer: number) {
     if (!this.mathProblem) return
-    
+
     const isCorrect = answer === this.mathProblem.answer
-    
+
     // Play attack animation
     this.player.sprite.anims.play('hero_attack', true)
-    
+
     if (isCorrect) {
+      // Play attack sound
+      this.playSound(this.attackSound)
+
       // Calculate damage based on attack and problem difficulty
       const baseDamage = this.player.attack
       const difficultyBonus = this.mathProblem.difficulty * 5
       const damage = Math.max(1, baseDamage + difficultyBonus - this.currentEnemy.defense)
-      
+
       this.currentEnemy.hp = Math.max(0, this.currentEnemy.hp - damage)
-      
+
+      // Play enemy hit sound after a short delay
+      this.time.delayedCall(500, () => {
+        this.playSound(this.enemyHitSound)
+      })
+
       // Emit success event
       this.gameEvents.emit('COMBAT_RESULT', {
         success: true,
         damage: damage,
         message: `Correct! You dealt ${damage} damage!`
       })
-      
+
+      console.log('MathRPGScene: Emitting COMBAT_RESULT event')
+
       // Check if enemy defeated
       if (this.currentEnemy.hp <= 0) {
         this.enemyDefeated()
@@ -438,16 +523,20 @@ export class MathRPGScene extends BaseGameScene {
         this.time.delayedCall(2000, () => this.enemyTurn())
       }
     } else {
-      // Wrong answer
+      // Wrong answer - play hurt sound
+      this.playSound(this.playerHurtSound)
+
       this.gameEvents.emit('COMBAT_RESULT', {
         success: false,
         damage: 0,
         message: `Wrong! The answer was ${this.mathProblem.answer}`
       })
 
+      console.log('MathRPGScene: Emitting COMBAT_RESULT event')
+
       this.time.delayedCall(2000, () => this.enemyTurn())
     }
-    
+
     this.emitHUDUpdate()
   }
 
@@ -460,14 +549,16 @@ export class MathRPGScene extends BaseGameScene {
     // Calculate enemy damage
     const damage = Math.max(1, this.currentEnemy.attack - this.player.defense)
     this.player.hp = Math.max(0, this.player.hp - damage)
-    
+
     this.gameEvents.emit('ENEMY_ATTACK', {
       damage: damage,
       enemyName: this.currentEnemy.name
     })
-    
+
+    console.log('MathRPGScene: Emitting ENEMY_ATTACK event')
+
     this.emitHUDUpdate()
-    
+
     // Check if player defeated
     if (this.player.hp <= 0) {
       this.playerDefeated()
@@ -478,25 +569,27 @@ export class MathRPGScene extends BaseGameScene {
 
   private enemyDefeated() {
     this.battleState = 'victory'
-    
+
     // Award experience and gold
     this.player.exp += this.currentEnemy.rewards.exp
     this.player.gold += this.currentEnemy.rewards.gold
-    
+
     // Check for level up
     if (this.player.exp >= this.player.expToNext) {
       this.levelUp()
     }
-    
+
     this.gameEvents.emit('ENEMY_DEFEATED', {
       enemy: this.currentEnemy.name,
       expGained: this.currentEnemy.rewards.exp,
       goldGained: this.currentEnemy.rewards.gold,
       isBoss: this.currentEnemy.isBoss
     })
-    
+
+    console.log('MathRPGScene: Emitting ENEMY_DEFEATED event')
+
     this.emitHUDUpdate()
-    
+
     // Show shop after boss battles or every few battles
     if (this.currentEnemy.isBoss || this.currentBattle % 4 === 0) {
       this.time.delayedCall(3000, () => this.openShop())
@@ -509,34 +602,38 @@ export class MathRPGScene extends BaseGameScene {
     this.player.level++
     this.player.exp -= this.player.expToNext
     this.player.expToNext = Math.floor(this.player.expToNext * 1.5)
-    
+
     // Increase stats
     const hpIncrease = 20
     const attackIncrease = 3
     const defenseIncrease = 2
-    
+
     this.player.maxHp += hpIncrease
     this.player.hp += hpIncrease
     this.player.attack += attackIncrease
     this.player.defense += defenseIncrease
-    
+
     this.gameEvents.emit('LEVEL_UP', {
       newLevel: this.player.level,
       hpIncrease,
       attackIncrease,
       defenseIncrease
     })
+
+    console.log('MathRPGScene: Emitting LEVEL_UP event')
   }
 
   private playerDefeated() {
     this.battleState = 'defeat'
-    
+
     this.gameEvents.emit('PLAYER_DEFEATED', {
       finalScore: this.player.exp,
       level: this.player.level,
       battlesWon: this.currentBattle - 1
     })
-    
+
+    console.log('MathRPGScene: Emitting PLAYER_DEFEATED event')
+
     // Game over after delay
     this.time.delayedCall(3000, () => {
       this.completeGame(this.player.exp, [`Reached Level ${this.player.level}`, `Defeated ${this.currentBattle - 1} enemies`])
@@ -545,17 +642,19 @@ export class MathRPGScene extends BaseGameScene {
 
   private openShop() {
     this.battleState = 'shopping'
-    
+
     this.gameEvents.emit('OPEN_SHOP_OVERLAY', {
       items: this.shopItems,
       playerGold: this.player.gold
     })
+
+    console.log('MathRPGScene: Emitting OPEN_SHOP_OVERLAY event')
   }
 
   private handleShopPurchase(itemId: string) {
     const item = this.shopItems.find(i => i.id === itemId)
     if (!item || this.player.gold < item.cost) return
-    
+
     this.player.gold -= item.cost
 
     // Apply item effects
@@ -573,7 +672,9 @@ export class MathRPGScene extends BaseGameScene {
       item: item.name,
       effect: item.effect
     })
-    
+
+    console.log('MathRPGScene: Emitting ITEM_PURCHASED event')
+
     this.emitHUDUpdate()
   }
 
@@ -595,13 +696,15 @@ export class MathRPGScene extends BaseGameScene {
       'Defeated All Enemies',
       `Earned ${this.player.gold} Gold`
     ]
-    
+
     this.gameEvents.emit('GAME_COMPLETED', {
       victory: true,
       finalScore: this.player.exp + this.player.gold,
       achievements
     })
-    
+
+    console.log('MathRPGScene: Emitting GAME_COMPLETED event')
+
     this.time.delayedCall(3000, () => {
       this.completeGame(this.player.exp + this.player.gold, achievements)
     })
@@ -627,7 +730,9 @@ export class MathRPGScene extends BaseGameScene {
         isBoss: this.currentEnemy.isBoss
       } : null
     })
-    
+
+    console.log('MathRPGScene: Emitting UPDATE_HUD event')
+
     // Update base game state
     this.gameState.health = this.player.hp
     this.gameState.level = this.player.level
@@ -641,5 +746,14 @@ export class MathRPGScene extends BaseGameScene {
 
   update() {
     // Handle continuous updates if needed
+  }
+
+  // Utility method to play a sound if it exists
+  private playSound(sound?: Phaser.Sound.BaseSound) {
+    if (sound && sound.isPlaying === false) {
+      sound.play();
+    } else if (sound && !sound.isPlaying) {
+      sound.play();
+    }
   }
 }

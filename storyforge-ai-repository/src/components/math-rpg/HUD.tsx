@@ -50,7 +50,7 @@ export const HUD: React.FC<HUDProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-40 p-4">
+    <div className="fixed top-20 left-0 right-0 z-40 p-4">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Player Stats */}

@@ -1,4 +1,3 @@
-
 import Phaser from 'phaser'
 import { GameTemplate, GameCustomization, GameState } from '../types/game'
 import { saveGameState, loadGameState } from '../config/supabase'
@@ -35,9 +34,9 @@ export class GameEngine {
   async initialize(containerId: string): Promise<void> {
     try {
       console.log('GameEngine: Starting initialization for', this.props.gameTemplate.id)
-      
+
       this.gameContainer = document.getElementById(containerId) as HTMLDivElement
-      
+
       if (!this.gameContainer) {
         throw new Error(`Game container with id '${containerId}' not found`)
       }
@@ -51,7 +50,7 @@ export class GameEngine {
         console.warn('GameEngine: Failed to load saved state:', error)
         return null
       })
-      
+
       console.log('GameEngine: Creating Phaser config...')
       const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
@@ -99,7 +98,13 @@ export class GameEngine {
 
       console.log('GameEngine: Creating Phaser game...')
       this.game = new Phaser.Game(config)
-      
+
+      // Add scene monitoring
+      this.game.events.on('ready', () => {
+        console.log('GameEngine: Phaser game ready')
+        console.log('GameEngine: Active scenes:', this.game!.scene.getScenes().map(s => s.scene.key))
+      })
+
       console.log('GameEngine: Initialization complete!')
     } catch (error) {
       console.error('GameEngine: Initialization failed:', error)
@@ -108,6 +113,8 @@ export class GameEngine {
   }
 
   private async getGameScene(templateId: string, savedState?: GameState) {
+    console.log('GameEngine: Loading scene for template ID:', templateId)
+
     const sceneData = {
       customization: this.props.customization,
       savedState,
@@ -118,26 +125,32 @@ export class GameEngine {
 
     switch (templateId) {
       case 'pixel-quest': {
+        console.log('GameEngine: Loading PixelQuestScene')
         const { PixelQuestScene } = await import('./scenes/PixelQuestScene');
         return new PixelQuestScene(sceneData);
       }
       case 'platform-hero': {
+        console.log('GameEngine: Loading PlatformHeroScene')
         const { PlatformHeroScene } = await import('./scenes/PlatformHeroScene');
         return new PlatformHeroScene(sceneData);
       }
       case 'math-rpg': {
+        console.log('GameEngine: Loading MathRPGScene')
         const { MathRPGScene } = await import('./scenes/MathRPGScene');
         return new MathRPGScene(sceneData);
       }
       case 'reveal-adventure': {
+        console.log('GameEngine: Loading RevealAdventureScene')
         const { RevealAdventureScene } = await import('./scenes/RevealAdventureScene');
         return new RevealAdventureScene(sceneData);
       }
       case 'puzzle-solver': {
+        console.log('GameEngine: Loading PuzzleSolverScene')
         const { PuzzleSolverScene } = await import('./scenes/PuzzleSolverScene');
         return new PuzzleSolverScene(sceneData);
       }
       default:
+        console.error('GameEngine: Unknown template ID:', templateId)
         throw new Error(`Unknown game template: ${templateId}`);
     }
   }
@@ -149,7 +162,7 @@ export class GameEngine {
     } else {
       localStorage.removeItem(`${this.props.gameTemplate.id}_guest`)
     }
-    
+
     this.props.onGameComplete(score, achievements, gameTime || 0)
   }
 
